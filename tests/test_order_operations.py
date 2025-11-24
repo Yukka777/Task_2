@@ -38,8 +38,7 @@ class TestOrderOperations:
 
     @allure.title("Создание заказа с авторизацией")
     @allure.severity(allure.severity_level.BLOCKER)
-    def test_create_order_with_auth(self):
-        base_url = "https://stellarburgers.education-services.ru/api"
+    def test_create_order_with_auth(self, base_url):
         
         with allure.step("Регистрация пользователя"):
             access_token, user_data = self._register_user(base_url)
@@ -81,8 +80,7 @@ class TestOrderOperations:
 
     @allure.title("Создание заказа без авторизации")
     @allure.severity(allure.severity_level.CRITICAL)
-    def test_create_order_without_auth(self):
-        base_url = "https://stellarburgers.education-services.ru/api"
+    def test_create_order_without_auth(self, base_url):
         
         with allure.step("Получение ингредиентов"):
             ingredients_response = requests.get(f"{base_url}/ingredients")
@@ -108,8 +106,7 @@ class TestOrderOperations:
 
     @allure.title("Создание заказа без ингредиентов")
     @allure.severity(allure.severity_level.CRITICAL)
-    def test_create_order_without_ingredients(self):
-        base_url = "https://stellarburgers.education-services.ru/api"
+    def test_create_order_without_ingredients(self, base_url):
         
         with allure.step("Регистрация пользователя"):
             access_token, user_data = self._register_user(base_url)
@@ -133,8 +130,7 @@ class TestOrderOperations:
 
     @allure.title("Создание заказа с неверным хешем ингредиентов")
     @allure.severity(allure.severity_level.NORMAL)
-    def test_create_order_with_invalid_ingredients(self):
-        base_url = "https://stellarburgers.education-services.ru/api"
+    def test_create_order_with_invalid_ingredients(self, base_url):
         
         with allure.step("Регистрация пользователя"):
             access_token, user_data = self._register_user(base_url)
@@ -152,4 +148,5 @@ class TestOrderOperations:
             try:
                 requests.delete(f"{base_url}/auth/user", headers=headers)
             except:
+
                 pass
