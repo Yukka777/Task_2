@@ -38,8 +38,7 @@ class TestUserAuthentication:
 
     @allure.title("Успешный вход в систему")
     @allure.severity(allure.severity_level.BLOCKER)
-    def test_successful_login(self):
-        base_url = "https://stellarburgers.education-services.ru/api"
+    def test_successful_login(self, base_url):
         
         with allure.step("Регистрация пользователя"):
             access_token, user_data = self._register_user(base_url)
@@ -67,8 +66,7 @@ class TestUserAuthentication:
 
     @allure.title("Вход с неверным паролем")
     @allure.severity(allure.severity_level.CRITICAL)
-    def test_login_wrong_password(self):
-        base_url = "https://stellarburgers.education-services.ru/api"
+    def test_login_wrong_password(self, base_url):
         
         with allure.step("Попытка входа с неверными данными"):
             login_data = {
@@ -81,4 +79,5 @@ class TestUserAuthentication:
             assert response.status_code == 401
             response_data = response.json()
             assert response_data["success"] is False
+
             assert "email or password are incorrect" in response_data["message"]
