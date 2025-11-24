@@ -38,8 +38,7 @@ class TestProfileManagement:
 
     @allure.title("Обновление имени пользователя")
     @allure.severity(allure.severity_level.CRITICAL)
-    def test_update_username(self):
-        base_url = "https://stellarburgers.education-services.ru/api"
+    def test_update_username(self, base_url):
         
         with allure.step("Регистрация пользователя"):
             access_token, user_data = self._register_user(base_url)
@@ -71,8 +70,7 @@ class TestProfileManagement:
 
     @allure.title("Обновление данных без авторизации")
     @allure.severity(allure.severity_level.CRITICAL)
-    def test_update_without_auth(self):
-        base_url = "https://stellarburgers.education-services.ru/api"
+    def test_update_without_auth(self, base_url):
         
         with allure.step("Попытка обновления без токена"):
             update_data = {
@@ -85,4 +83,5 @@ class TestProfileManagement:
             assert response.status_code == 401
             response_data = response.json()
             assert response_data["success"] is False
+
             assert "You should be authorised" in response_data["message"]
