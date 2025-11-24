@@ -11,8 +11,7 @@ class TestUserRegistration:
 
     @allure.title("Успешная регистрация нового пользователя")
     @allure.severity(allure.severity_level.BLOCKER)
-    def test_successful_user_registration(self):
-        base_url = "https://stellarburgers.education-services.ru/api"
+    def test_successful_user_registration(self, base_url):
         
         with allure.step("Подготовка данных для регистрации"):
             user_data = {
@@ -42,8 +41,7 @@ class TestUserRegistration:
 
     @allure.title("Регистрация с уже существующим email")
     @allure.severity(allure.severity_level.CRITICAL)
-    def test_register_existing_user(self):
-        base_url = "https://stellarburgers.education-services.ru/api"
+    def test_register_existing_user(self, base_url):
         
         with allure.step("Регистрация первого пользователя"):
             user_data = {
@@ -75,4 +73,5 @@ class TestUserRegistration:
             
         with allure.step("Очистка"):
             headers = {"Authorization": access_token}
+
             requests.delete(f"{base_url}/auth/user", headers=headers)
