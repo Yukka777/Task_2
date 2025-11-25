@@ -2,6 +2,7 @@ import pytest
 import requests
 import allure
 from faker import Faker
+from endpoints import Endpoints  # Импортируем класс с эндпоинтами
 
 fake = Faker()
 
@@ -9,7 +10,7 @@ fake = Faker()
 @allure.feature("Order Operations")
 class TestOrderOperations:
 
-    def _register_user(self, base_url):
+    def _register_user(self):
         """Вспомогательная функция для регистрации пользователя"""
         max_attempts = 3
         for attempt in range(max_attempts):
@@ -19,7 +20,8 @@ class TestOrderOperations:
                     "password": "testpassword123",
                     "name": fake.first_name()
                 }
-                response = requests.post(f"{base_url}/auth/register", json=user_data, timeout=10)
+                # Используем Endpoints.REGISTER вместо ручного составления URL
+                response = requests.post(Endpoints.REGISTER, json=user_data, timeout=10)
                 response_data = response.json()
                 
                 if response.status_code == 200 and "accessToken" in response_data:
@@ -38,13 +40,14 @@ class TestOrderOperations:
 
     @allure.title("Создание заказа с авторизацией")
     @allure.severity(allure.severity_level.BLOCKER)
-    def test_create_order_with_auth(self, base_url):
+    def test_create_order_with_auth(self):
         
         with allure.step("Регистрация пользователя"):
-            access_token, user_data = self._register_user(base_url)
+            access_token, user_data = self._register_user()
         
         with allure.step("Получение ингредиентов"):
-            ingredients_response = requests.get(f"{base_url}/ingredients")
+            # Используем Endpoints.INGREDIENTS
+            ingredients_response = requests.get(Endpoints.INGREDIENTS)
             ingredients_data = ingredients_response.json()
             
             if "data" in ingredients_data:
@@ -58,32 +61,32 @@ class TestOrderOperations:
         with allure.step("Создание заказа"):
             headers = {"Authorization": access_token}
             order_data = {"ingredients": ingredient_ids}
-            response = requests.post(f"{base_url}/orders", headers=headers, json=order_data)
+            # Используем Endpoints.ORDERS
+            response = requests.post(Endpoints.ORDERS, headers=headers, json=order_data)
         
         with allure.step("Проверка создания заказа"):
-            # API может вернуть 200 (успех) или 403 (проблема с токеном)
             if response.status_code == 200:
                 response_data = response.json()
                 assert response_data["success"] is True
                 assert "name" in response_data
             elif response.status_code == 403:
-                # Пропускаем тест если проблема с авторизацией
                 pytest.skip("Проблема с авторизацией при создании заказа")
             else:
                 assert False, f"Неожиданный статус код: {response.status_code}"
             
         with allure.step("Очистка"):
             try:
-                requests.delete(f"{base_url}/auth/user", headers=headers)
+                # Используем Endpoints.USER_INFO для удаления
+                requests.delete(Endpoints.USER_INFO, headers=headers)
             except:
-                pass  # Игнорируем ошибки при удалении
+                pass
 
     @allure.title("Создание заказа без авторизации")
     @allure.severity(allure.severity_level.CRITICAL)
-    def test_create_order_without_auth(self, base_url):
+    def test_create_order_without_auth(self):
         
         with allure.step("Получение ингредиентов"):
-            ingredients_response = requests.get(f"{base_url}/ingredients")
+            ingredients_response = requests.get(Endpoints.INGREDIENTS)
             ingredients_data = ingredients_response.json()
             
             if "data" in ingredients_data:
@@ -96,57 +99,53 @@ class TestOrderOperations:
         
         with allure.step("Попытка создания заказа без авторизации"):
             order_data = {"ingredients": ingredient_ids}
-            response = requests.post(f"{base_url}/orders", json=order_data)
+            response = requests.post(Endpoints.ORDERS, json=order_data)
         
         with allure.step("Проверка ответа"):
-            # API может разрешать создание заказа без авторизации (200) или требовать авторизацию (401/403)
             assert response.status_code in [200, 401, 403]
             if response.status_code == 200:
                 assert response.json()["success"] is True
 
     @allure.title("Создание заказа без ингредиентов")
     @allure.severity(allure.severity_level.CRITICAL)
-    def test_create_order_without_ingredients(self, base_url):
+    def test_create_order_without_ingredients(self):
         
         with allure.step("Регистрация пользователя"):
-            access_token, user_data = self._register_user(base_url)
+            access_token, user_data = self._register_user()
         
         with allure.step("Попытка создания заказа без ингредиентов"):
             headers = {"Authorization": access_token}
             order_data = {"ingredients": []}
-            response = requests.post(f"{base_url}/orders", headers=headers, json=order_data)
+            response = requests.post(Endpoints.ORDERS, headers=headers, json=order_data)
         
         with allure.step("Проверка ошибки валидации"):
-            # API может вернуть 400 или 403 при пустых ингредиентах
             assert response.status_code in [400, 403]
             response_data = response.json()
             assert response_data["success"] is False
             
         with allure.step("Очистка"):
             try:
-                requests.delete(f"{base_url}/auth/user", headers=headers)
+                requests.delete(Endpoints.USER_INFO, headers=headers)
             except:
                 pass
 
     @allure.title("Создание заказа с неверным хешем ингредиентов")
     @allure.severity(allure.severity_level.NORMAL)
-    def test_create_order_with_invalid_ingredients(self, base_url):
+    def test_create_order_with_invalid_ingredients(self):
         
         with allure.step("Регистрация пользователя"):
-            access_token, user_data = self._register_user(base_url)
+            access_token, user_data = self._register_user()
         
         with allure.step("Попытка создания заказа с неверными ингредиентами"):
             headers = {"Authorization": access_token}
             order_data = {"ingredients": ["invalid_hash_1", "invalid_hash_2"]}
-            response = requests.post(f"{base_url}/orders", headers=headers, json=order_data)
+            response = requests.post(Endpoints.ORDERS, headers=headers, json=order_data)
         
         with allure.step("Проверка ошибки сервера"):
-            # API может вернуть 500 (Internal Server Error) или 400/403 при невалидных данных
             assert response.status_code in [500, 400, 403]
             
         with allure.step("Очистка"):
             try:
-                requests.delete(f"{base_url}/auth/user", headers=headers)
+                requests.delete(Endpoints.USER_INFO, headers=headers)
             except:
-
                 pass
