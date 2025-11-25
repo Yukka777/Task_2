@@ -1,6 +1,7 @@
 import pytest
 import allure
 from faker import Faker
+from endpoints import Endpoints  # Добавляен импорт эндпоинтов
 
 fake = Faker()
 
@@ -10,7 +11,7 @@ class TestOrderHistory:
 
     @allure.title("Получение истории заказов авторизованного пользователя")
     @allure.severity(allure.severity_level.NORMAL)
-    def test_get_order_history_with_auth(self, base_url, create_new_user_and_delete, api_session):
+    def test_get_order_history_with_auth(self, create_new_user_and_delete, api_session):
         """
         Тест получения истории заказов для авторизованного пользователя
         """
@@ -18,8 +19,8 @@ class TestOrderHistory:
         access_token = response_body['accessToken']
         
         with allure.step("Создание тестового заказа"):
-            # Получаем список ингредиентов
-            ingredients_response = api_session.get(f"{base_url}/ingredients")
+            # Получаем список ингредиентов через Endpoints.INGREDIENTS
+            ingredients_response = api_session.get(Endpoints.INGREDIENTS)
             ingredients_data = ingredients_response.json()
             
             if "data" in ingredients_data:
@@ -30,10 +31,10 @@ class TestOrderHistory:
             assert len(ingredients) > 0, "Нет доступных ингредиентов"
             ingredient_ids = [ingredients[0]["_id"], ingredients[1]["_id"]]
             
-            # Создаем заказ
+            # Создаем заказ через Endpoints.ORDERS
             headers = {"Authorization": access_token}
             order_data = {"ingredients": ingredient_ids}
-            create_response = api_session.post(f"{base_url}/orders", headers=headers, json=order_data)
+            create_response = api_session.post(Endpoints.ORDERS, headers=headers, json=order_data)
             
             # Пропускаем если не удалось создать заказ из-за проблем с авторизацией
             if create_response.status_code == 403:
@@ -42,7 +43,8 @@ class TestOrderHistory:
                 pytest.skip(f"Не удалось создать тестовый заказ: {create_response.status_code}")
         
         with allure.step("Получение истории заказов"):
-            response = api_session.get(f"{base_url}/orders", headers=headers)
+            # Используем Endpoints.ORDERS для получения истории
+            response = api_session.get(Endpoints.ORDERS, headers=headers)
         
         with allure.step("Проверка успешного получения истории"):
             # API может вернуть 200 или 403 при проблемах с авторизацией
@@ -59,16 +61,16 @@ class TestOrderHistory:
 
     @allure.title("Получение истории заказов без авторизации")
     @allure.severity(allure.severity_level.CRITICAL)
-    def test_get_order_history_without_auth(self, base_url, api_session):
+    def test_get_order_history_without_auth(self, api_session):
         """
         Тест попытки получения истории заказов без авторизации
         """
         with allure.step("Попытка получения истории без авторизации"):
-            response = api_session.get(f"{base_url}/orders")
+            # Используем Endpoints.ORDERS
+            response = api_session.get(Endpoints.ORDERS)
         
         with allure.step("Проверка ошибки авторизации"):
             assert response.status_code == 401
             response_data = response.json()
             assert response_data["success"] is False
             assert "You should be authorised" in response_data["message"]
-            
