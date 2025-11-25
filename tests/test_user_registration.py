@@ -2,6 +2,7 @@ import pytest
 import requests
 import allure
 from faker import Faker
+from endpoints import Endpoints  # Добавляем импорт эндпоинтов
 
 fake = Faker()
 
@@ -11,7 +12,7 @@ class TestUserRegistration:
 
     @allure.title("Успешная регистрация нового пользователя")
     @allure.severity(allure.severity_level.BLOCKER)
-    def test_successful_user_registration(self, base_url):
+    def test_successful_user_registration(self):
         
         with allure.step("Подготовка данных для регистрации"):
             user_data = {
@@ -21,7 +22,8 @@ class TestUserRegistration:
             }
         
         with allure.step("Выполнение запроса на регистрацию"):
-            response = requests.post(f"{base_url}/auth/register", json=user_data)
+            # Используем Endpoints.REGISTER вместо ручного составления URL
+            response = requests.post(Endpoints.REGISTER, json=user_data)
             response_data = response.json()
             
             # Добавляем проверку статуса
@@ -37,11 +39,12 @@ class TestUserRegistration:
             
         with allure.step("Очистка: удаление пользователя"):
             headers = {"Authorization": response_data["accessToken"]}
-            requests.delete(f"{base_url}/auth/user", headers=headers)
+            # Используем Endpoints.USER_INFO вместо ручного составления URL
+            requests.delete(Endpoints.USER_INFO, headers=headers)
 
     @allure.title("Регистрация с уже существующим email")
     @allure.severity(allure.severity_level.CRITICAL)
-    def test_register_existing_user(self, base_url):
+    def test_register_existing_user(self):
         
         with allure.step("Регистрация первого пользователя"):
             user_data = {
@@ -49,7 +52,8 @@ class TestUserRegistration:
                 "password": fake.password(),
                 "name": fake.first_name()
             }
-            first_response = requests.post(f"{base_url}/auth/register", json=user_data)
+            # Используем Endpoints.REGISTER вместо ручного составления URL
+            first_response = requests.post(Endpoints.REGISTER, json=user_data)
             first_data = first_response.json()
             
             # Добавляем проверку статуса
@@ -63,7 +67,8 @@ class TestUserRegistration:
                                    if isinstance(v, str) and len(v) > 10), None)
         
         with allure.step("Попытка регистрации с тем же email"):
-            response = requests.post(f"{base_url}/auth/register", json=user_data)
+            # Используем Endpoints.REGISTER вместо ручного составления URL
+            response = requests.post(Endpoints.REGISTER, json=user_data)
         
         with allure.step("Проверка ошибки дублирования"):
             assert response.status_code == 403
@@ -73,5 +78,5 @@ class TestUserRegistration:
             
         with allure.step("Очистка"):
             headers = {"Authorization": access_token}
-
-            requests.delete(f"{base_url}/auth/user", headers=headers)
+            # Используем Endpoints.USER_INFO вместо ручного составления URL
+            requests.delete(Endpoints.USER_INFO, headers=headers)
