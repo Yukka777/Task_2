@@ -2,6 +2,7 @@ import pytest
 import requests
 import allure
 from faker import Faker
+from endpoints import Endpoints  # Добавляем импорт эндпоинтов
 
 fake = Faker()
 
@@ -9,7 +10,7 @@ fake = Faker()
 @allure.feature("User Authentication")
 class TestUserAuthentication:
 
-    def _register_user(self, base_url):
+    def _register_user(self):
         """Вспомогательная функция для регистрации пользователя"""
         max_attempts = 3
         for attempt in range(max_attempts):
@@ -19,7 +20,8 @@ class TestUserAuthentication:
                     "password": "testpassword123",
                     "name": fake.first_name()
                 }
-                response = requests.post(f"{base_url}/auth/register", json=user_data, timeout=10)
+                # Используем Endpoints.REGISTER вместо ручного составления URL
+                response = requests.post(Endpoints.REGISTER, json=user_data, timeout=10)
                 response_data = response.json()
                 
                 if response.status_code == 200 and "accessToken" in response_data:
@@ -38,17 +40,18 @@ class TestUserAuthentication:
 
     @allure.title("Успешный вход в систему")
     @allure.severity(allure.severity_level.BLOCKER)
-    def test_successful_login(self, base_url):
+    def test_successful_login(self):
         
         with allure.step("Регистрация пользователя"):
-            access_token, user_data = self._register_user(base_url)
+            access_token, user_data = self._register_user()
         
         with allure.step("Вход в систему"):
             login_data = {
                 "email": user_data["email"],
                 "password": user_data["password"]
             }
-            response = requests.post(f"{base_url}/auth/login", json=login_data)
+            # Используем Endpoints.LOGIN вместо ручного составления URL
+            response = requests.post(Endpoints.LOGIN, json=login_data)
         
         with allure.step("Проверка успешного входа"):
             assert response.status_code == 200
@@ -60,24 +63,25 @@ class TestUserAuthentication:
         with allure.step("Очистка"):
             try:
                 headers = {"Authorization": access_token}
-                requests.delete(f"{base_url}/auth/user", headers=headers)
+                # Используем Endpoints.USER_INFO вместо ручного составления URL
+                requests.delete(Endpoints.USER_INFO, headers=headers)
             except:
                 pass
 
     @allure.title("Вход с неверным паролем")
     @allure.severity(allure.severity_level.CRITICAL)
-    def test_login_wrong_password(self, base_url):
+    def test_login_wrong_password(self):
         
         with allure.step("Попытка входа с неверными данными"):
             login_data = {
                 "email": "nonexistent@example.com",
                 "password": "wrongpassword"
             }
-            response = requests.post(f"{base_url}/auth/login", json=login_data)
+            # Используем Endpoints.LOGIN вместо ручного составления URL
+            response = requests.post(Endpoints.LOGIN, json=login_data)
         
         with allure.step("Проверка ошибки аутентификации"):
             assert response.status_code == 401
             response_data = response.json()
             assert response_data["success"] is False
-
             assert "email or password are incorrect" in response_data["message"]
