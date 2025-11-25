@@ -1,7 +1,8 @@
-import pytest
+mport pytest
 import requests
 import allure
 from faker import Faker
+from endpoints import Endpoints  # Добавлен импорт эндпоинтов
 
 fake = Faker()
 
@@ -9,7 +10,7 @@ fake = Faker()
 @allure.feature("Profile Management")
 class TestProfileManagement:
 
-    def _register_user(self, base_url):
+    def _register_user(self):
         """Вспомогательная функция для регистрации пользователя"""
         max_attempts = 3
         for attempt in range(max_attempts):
@@ -19,7 +20,8 @@ class TestProfileManagement:
                     "password": "testpassword123",
                     "name": fake.first_name()
                 }
-                response = requests.post(f"{base_url}/auth/register", json=user_data, timeout=10)
+                # Используем Endpoints.REGISTER вместо ручного составления URL
+                response = requests.post(Endpoints.REGISTER, json=user_data, timeout=10)
                 response_data = response.json()
                 
                 if response.status_code == 200 and "accessToken" in response_data:
@@ -38,10 +40,10 @@ class TestProfileManagement:
 
     @allure.title("Обновление имени пользователя")
     @allure.severity(allure.severity_level.CRITICAL)
-    def test_update_username(self, base_url):
+    def test_update_username(self):
         
         with allure.step("Регистрация пользователя"):
-            access_token, user_data = self._register_user(base_url)
+            access_token, user_data = self._register_user()
         
         with allure.step("Обновление имени"):
             headers = {"Authorization": access_token}
@@ -49,7 +51,8 @@ class TestProfileManagement:
                 "name": "UpdatedName",
                 "email": user_data["email"]
             }
-            response = requests.patch(f"{base_url}/auth/user", headers=headers, json=update_data)
+            # Используем Endpoints.USER_INFO вместо ручного составления URL
+            response = requests.patch(Endpoints.USER_INFO, headers=headers, json=update_data)
         
         with allure.step("Проверка обновления"):
             # API может вернуть 200 (успех) или 403 (проблема с токеном)
@@ -64,24 +67,25 @@ class TestProfileManagement:
             
         with allure.step("Очистка"):
             try:
-                requests.delete(f"{base_url}/auth/user", headers=headers)
+                # Используем Endpoints.USER_INFO для удаления пользователя
+                requests.delete(Endpoints.USER_INFO, headers=headers)
             except:
                 pass  # Игнорируем ошибки при удалении
 
     @allure.title("Обновление данных без авторизации")
     @allure.severity(allure.severity_level.CRITICAL)
-    def test_update_without_auth(self, base_url):
+    def test_update_without_auth(self):
         
         with allure.step("Попытка обновления без токена"):
             update_data = {
                 "name": "AnyName",
                 "email": "any@email.com"
             }
-            response = requests.patch(f"{base_url}/auth/user", json=update_data)
+            # Используем Endpoints.USER_INFO вместо ручного составления URL
+            response = requests.patch(Endpoints.USER_INFO, json=update_data)
         
         with allure.step("Проверка ошибки авторизации"):
             assert response.status_code == 401
             response_data = response.json()
             assert response_data["success"] is False
-
             assert "You should be authorised" in response_data["message"]
